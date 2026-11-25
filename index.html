@@ -1,39 +1,43 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FORM — Material Studio</title><link rel="stylesheet" href="style.css"></head>
+<title>FORM — Material Studio / Beta 04</title><link rel="stylesheet" href="style.css"></head>
 <body><div class="app">
-<header class="top"><a class="brand" href="#">FORM<span>.</span></a><div class="edition">MATERIAL & TEXTURE STUDIO <i>/</i> BETA 02</div>
+<header class="top"><a class="brand" href="#">FORM<span>.</span></a><div class="edition">MATERIAL & TEXTURE STUDIO <i>/</i> BETA 04 / MATERIAL ENGINE</div>
 <div class="top-actions"><button id="saveBtn" class="quiet">SAVE PROJECT</button><label class="quiet" style="border:1px solid #333;padding:9px 12px;cursor:pointer">OPEN<input id="openInput" type="file" accept=".json" hidden></label><button id="clearBtn" class="quiet">CLEAR</button><button id="exportBtn" class="primary">EXPORT PNG ↗</button></div></header>
 <main class="workspace">
 <aside class="sidebar left">
 <div class="section-head">01 / TOOL</div>
-<div class="tools"><button data-tool="draw" class="on">DRAW B</button><button data-tool="sel">SELECT V</button><button data-tool="erase">ERASE E</button><button data-tool="mask">MASK M</button></div>
+<div class="tools"><button data-tool="draw" class="on">DRAW B</button><button data-tool="sel">SELECT V</button><button data-tool="erase">ERASE E</button><button data-tool="mask">MASK M</button><button data-tool="light">LIGHT L</button></div>
 <div class="section-head">02 / INSTRUMENTS <span>16</span></div><div class="brush-grid" id="brushes"></div>
 <div class="section-head spaced">03 / GLITTER LAB <span>6</span></div><div class="brush-grid" id="glit"></div>
-<div class="section-head spaced">04 / IMAGE LAB</div>
+<div class="section-head spaced">04 / GLASS LAB <span>3</span></div><div class="brush-grid" id="gls"></div><div class="hint">Glass refracts everything beneath it. Draw over images, text, other strokes.</div>
+<div class="section-head spaced">05 / IMAGE LAB</div>
 <label class="upload">＋ <span>ADD PNG / JPG / WEBP</span><input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
 <button id="addText" class="wide" style="margin-top:8px">＋ ADD TEXT</button>
 <div class="hint">Drop images onto the artboard. Texture respects PNG transparency.</div>
-<div class="section-head spaced">05 / LAYERS</div><div id="layers" class="layers"></div>
+<div class="section-head spaced">06 / LAYERS</div><div id="layers" class="layers"></div>
 <div class="lact"><button id="dupBtn">DUPLICATE</button><button id="upBtn">UP ↑</button><button id="dnBtn">DOWN ↓</button><button id="delBtn">DELETE</button></div>
 </aside>
 <section class="center">
 <div class="canvas-toolbar"><span>ARTBOARD / 01</span><div><button id="undoBtn">UNDO ↶</button><button id="redoBtn">REDO ↷</button></div></div>
-<div class="stage-wrap"><div class="stage" id="stage"><canvas id="art" width="1200" height="900"></canvas><div class="stage-note" id="stageNote">DRAW SOMETHING<br><small>Choose an instrument and move across the canvas</small></div></div></div>
+<div class="stage-wrap"><div class="stage" id="stage"><canvas id="art" width="1200" height="900"></canvas><canvas id="threeView" width="1200" height="900" aria-hidden="true"></canvas><div class="stage-note" id="stageNote">DRAW SOMETHING<br><small>Choose an instrument and move across the canvas</small></div></div></div>
 <div class="canvas-footer"><span id="status">READY</span><span>1200 × 900 PX <i>·</i> TRANSPARENT EXPORT</span></div>
 </section>
 <aside class="sidebar right">
-<div class="section-head">06 / MATERIAL <span id="target">NEW STROKE</span></div>
+<div class="section-head">07 / MATERIAL <span id="target">NEW STROKE</span></div>
 <div class="active-brush" id="activeBrush"></div>
 <div class="control"><label>SIZE <output></output></label><input id="size" type="range" min="6" max="140" value="44"></div>
 <div class="control"><label>TEXTURE <output></output></label><input id="texture" type="range" min="0" max="100" value="55"></div>
 <div class="control"><label>RELIEF <output></output></label><input id="relief" type="range" min="0" max="100" value="65"></div>
 <div class="control"><label>LIGHT ANGLE <output></output></label><input id="light" type="range" min="0" max="360" value="135"></div>
+<div class="control"><label>3D DEPTH <output></output></label><input id="d3" type="range" min="0" max="100" value="75"></div>
 <div class="control"><label>GLITTER <output></output></label><input id="glitter" type="range" min="0" max="100" value="0"></div>
 <div id="glPanel" style="display:none"><div class="sub">GLITTER</div><div class="control"><label>DENSITY <output></output></label><input id="gd" type="range" min="0" max="100" value="60"></div><div class="control"><label>SHINE <output></output></label><input id="gs" type="range" min="0" max="100" value="70"></div><div class="control"><label>HUE SHIFT <output></output></label><input id="gh" type="range" min="0" max="100" value="0"></div><div class="control"><label>RANDOMNESS <output></output></label><input id="gr" type="range" min="0" max="100" value="50"></div><div class="control"><label>SPARKLE <output></output></label><input id="gk" type="range" min="0" max="100" value="50"></div><div class="control"><label>ROTATION <output></output></label><input id="gro" type="range" min="0" max="360" value="0"></div></div>
+<div id="glsPanel" style="display:none"><div class="sub">GLASS</div><div class="control"><label>REFRACTION <output></output></label><input id="gf" type="range" min="0" max="100" value="40"></div><div class="control"><label>DISPERSION <output></output></label><input id="gc" type="range" min="0" max="100" value="15"></div><div class="control"><label>FROST <output></output></label><input id="gz" type="range" min="0" max="100" value="8"></div><div class="hint">RELIEF = rim thickness. LIGHT ANGLE moves highlights and shadow. COLOR tints the glass.</div></div>
 <div class="sub">SYMMETRY</div><div class="control"><select id="sm"><option value="off">Off</option><option value="x">Mirror ↔ (left / right)</option><option value="y">Mirror ↕ (top / bottom)</option><option value="xy">Quad mirror</option><option value="rad">Radial</option><option value="kal">Kaleidoscope</option></select></div><div class="control"><label>SEGMENTS <output></output></label><input id="sn" type="range" min="2" max="16" value="6"></div>
 <div class="control"><label>COLOR</label><div class="colors"><button data-color="#e9e7e2" class="swatch selected"></button><button data-color="#aeb4bb" class="swatch"></button><button data-color="#8e9da4" class="swatch"></button><button data-color="#c9a8b9" class="swatch"></button><button data-color="#b9a16b" class="swatch"></button><input id="color" type="color" value="#e9e7e2"></div></div>
-<div class="section-head spaced">07 / LAYER</div>
+<div class="section-head spaced">08 / LIGHTS <span>L</span></div><div class="control"><select id="L_sel"></select></div><div class="row2"><button id="L_add">+ LIGHT</button><button id="L_del">DELETE</button></div><div class="control"><label>INTENSITY <output></output></label><input id="L_int" type="range" min="0" max="200" value="100"></div><div class="control"><label>HEIGHT <output></output></label><input id="L_z" type="range" min="40" max="800" value="320"></div><div class="control"><label>FALLOFF <output></output></label><input id="L_r" type="range" min="100" max="2500" value="1100"></div><div class="control"><label>LIGHT COLOR</label><input id="L_col" type="color" value="#fff1e0"></div><div class="control"><label>AMBIENT <output></output></label><input id="L_amb" type="range" min="0" max="100" value="30"></div><div class="hint">LIGHT tool (L): drag a light on the artboard. Every stroke is relit in real time; 3D Depth sets how strongly.</div>
+<div class="section-head spaced">09 / LAYER</div>
 <div class="control"><label>OPACITY <output></output></label><input id="op" type="range" min="5" max="100" value="100"></div>
 <div class="control"><label>BLEND</label><select id="blend"><option value="source-over">Normal</option><option value="multiply">Multiply</option><option value="screen">Screen</option><option value="overlay">Overlay</option><option value="difference">Difference</option><option value="soft-light">Soft Light</option></select></div>
 <div id="trPanel" style="display:none"><div class="sub">TRANSFORM</div>
@@ -46,7 +50,7 @@
 <div class="sub">TEXTURE MASK</div><div class="tools" style="grid-template-columns:1fr 1fr"><button id="mAdd" class="on">PAINT +</button><button id="mSub">ERASE −</button></div><div class="tools" style="grid-template-columns:1fr 1fr"><button id="mAll">FULL</button><button id="mClr">NO MASK</button></div><div class="hint">Paint where the texture should appear. Brush size = SIZE. Without a mask the texture covers the whole image.</div>
 <div class="control"><label>AMOUNT <output></output></label><input id="ta" type="range" min="0" max="100" value="70"></div>
 <div class="control"><label>TEXTURE SCALE <output></output></label><input id="ts" type="range" min="1" max="100" value="40"></div></div>
-<div class="section-head spaced">08 / EXPORT</div>
+<div class="section-head spaced">10 / EXPORT</div>
 <div class="control"><select id="expScale"><option value="1">1× — 1200 × 900</option><option value="2" selected>2× — 2400 × 1800</option><option value="3">3× — 3600 × 2700</option></select></div>
 <div class="hint bottom-hint">Strokes stay editable: switch to SELECT, pick a layer, change its material. Save Project keeps everything.</div>
-</aside></main></div><script src="script.js"></script></body></html>
+</aside></main></div><script src="script.js"></script><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script><script type="module" src="three-renderer.js"></script></body></html>
