@@ -11,3 +11,10 @@
 .stage #threeView{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
 .stage #art{position:relative;z-index:1}
 .stage .stage-note{z-index:4}
+
+/* Coordinate-safe stacked canvases: both render surfaces exactly match the artboard box. */
+.stage{overflow:hidden;isolation:isolate}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;margin:0;max-width:none;max-height:none;touch-action:none}
+.stage #art{z-index:1}
+.stage #threeView{z-index:2;pointer-events:none}
+.stage .stage-note{z-index:4}

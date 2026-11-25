@@ -114,6 +114,29 @@ function foamLattice(g,c,size,matr,seedFn){
   if(i<along){strut(g,grid[i][j],grid[i+1][j],wire,matr,6);const diag=(i+j)%2===0?next:(j+around-1)%around;strut(g,grid[i][j],grid[i+1][diag],wire*.82,matr,6);}
  }
 }
+
+function ellipsoid(g,pos,scale,matr,detail=2,rot=0){
+ const m=new THREE.Mesh(new THREE.IcosahedronGeometry(1,detail),matr);
+ m.position.copy(pos);m.scale.set(scale[0],scale[1],scale[2]);m.rotation.z=rot;
+ m.castShadow=m.receiveShadow=true;g.add(m);return m;
+}
+function leafShape(g,pos,angle,length,width,matr){
+ const shape=new THREE.Shape();shape.moveTo(0,0);shape.quadraticCurveTo(length*.42,width*.62,length,0);shape.quadraticCurveTo(length*.45,-width*.62,0,0);
+ const geo=new THREE.ShapeGeometry(shape,12);geo.rotateX(-Math.PI/2);
+ const mesh=new THREE.Mesh(geo,matr);mesh.position.copy(pos);mesh.rotation.set(-.12,angle,.15);mesh.castShadow=true;g.add(mesh);
+ strut(g,pos,pos.clone().add(new THREE.Vector3(Math.cos(angle)*length,Math.sin(angle)*length,.015)),Math.max(.45,width*.025),wood,5);
+ return mesh;
+}
+function coneBetween(g,a,b,r,matr,radial=8){
+ const d=b.clone().sub(a),len=d.length();if(len<.01)return;
+ const m=new THREE.Mesh(new THREE.ConeGeometry(r,len,radial),matr);m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());m.castShadow=true;g.add(m);return m;
+}
+function jaggedTube(c,r,matr,seed,segments=100){
+ const pts=c.getSpacedPoints(segments),out=[];
+ for(let i=0;i<pts.length;i++){const p=pts[i],t=c.getTangentAt(i/segments),n=new THREE.Vector3(-t.y,t.x,0),v=deterministicNoise(i/segments,seed,.22);out.push(p.clone().addScaledVector(n,(v-1)*r*.8))}
+ return new THREE.CatmullRomCurve3(out);
+}
+
 function deterministicNoise(t,seed,amount){const a=Math.sin((t*127.1+seed*311.7))*43758.5453;return 1+(a-Math.floor(a)-.5)*amount;}
 
 function build(l){
@@ -124,39 +147,102 @@ function build(l){
  case 0: {const seed=l.seed||17;g.add(variableTube(c,t=>size*.355*deterministicNoise(t,seed,.055)*(.94+.06*Math.sin(t*len/size*1.6)),ceramic,n,32));break;}
  case 1: {const seed=l.seed||17;g.add(variableTube(c,t=>size*.355*deterministicNoise(t,seed,rel*.34)*(.92+.08*Math.sin(t*len/size*3)),stone,n,20));break;}
  case 2: {const seed=l.seed||23;g.add(variableTube(c,t=>size*.325*deterministicNoise(t,seed,.045)*(.88+.12*Math.sin(t*len/size*2.2)**2),chrome,n,32));break;}
- case 3: g.add(variableTube(c,t=>size*.28*(.9+.1*Math.sin(t*12*Math.PI)),material(col,'ceramic'),n,20));break;
- case 4: g.add(variableTube(c,t=>size*.43*(.78+.22*Math.sin(t*19*Math.PI)),clay,n,24));for(let i=0;i<pts.length;i+=5)ball(g,pts[i].clone().add(new THREE.Vector3((R()-.5)*size*.2,(R()-.5)*size*.2,size*.1)),size*(.045+R()*.07),clay,2);break;
- case 5: { // open-cell foam: connected 3D strut network and polygonal voids
-   foamLattice(g,c,size,foam,R);break;
+ case 3: { // Embossed pressed form with a broad rounded shoulder and bevel
+   const em=material(col,'ceramic');g.add(variableTube(c,t=>size*.29*(.92+.08*Math.sin(t*len/size*2)),em,n,28));break;
  }
- case 6: {for(let k=0;k<3;k++){const cc=offsetCurve(c,(k-1)*size*.18,k*size*.09);g.add(variableTube(cc,t=>size*(.17+.09*Math.pow(Math.sin(t*len/size*2.4+k),2)),foam,n,24))}break;}
- case 7: for(let i=0;i<pts.length;i+=Math.max(2,Math.floor(size*.65/5)))ball(g,pts[i].clone().add(new THREE.Vector3(0,0,size*.12)),size*.24,bead,3);break;
- case 8: for(const q of pts)for(let k=0;k<Math.round(7+tex*15);k++){let a=R()*6.283,d=(R()-.5)*size*.9;ball(g,new THREE.Vector3(q.x+Math.cos(a)*d,q.y+Math.sin(a)*d,(R()-.5)*size*.12),.4+R()*1.5,sand,1)}break;
- case 9: for(const q of pts)for(let k=0;k<14;k++){let a=R()*6.283,d=(R()-.5)*size*.85;ball(g,new THREE.Vector3(q.x+Math.cos(a)*d,q.y+Math.sin(a)*d,R()*size*.1),.5+R()*1.2,stone,1)}break;
- case 10: { // porous mass with deep shaded pits and a rough outer silhouette
-   g.add(variableTube(c,t=>size*.36*(.9+.1*Math.sin(t*len/size*5)),material(col,'porous'),n,18));
-   for(let i=0;i<pts.length;i+=3){let q=pts[i],a=R()*6.283,d=(R()-.5)*size*.42,rr=size*(.035+R()*.055);const pit=new THREE.Mesh(new THREE.CircleGeometry(rr,12),new THREE.MeshBasicMaterial({color:0x252b20}));pit.position.set(q.x+Math.cos(a)*d,q.y+Math.sin(a)*d,size*.34);g.add(pit)}
+ case 4: { // Thick sculptural paste with tool ridges and dragged peaks
+   g.add(variableTube(c,t=>size*.43*(.82+.18*Math.sin(t*len/size*5)**2),clay,n,28));
+   for(let i=3;i<pts.length-3;i+=7){const q=pts[i],t=c.getTangentAt(i/n),normal=new THREE.Vector3(-t.y,t.x,0),h=size*(.08+R()*.18);strut(g,q.clone().addScaledVector(normal,h*.15).add(new THREE.Vector3(0,0,size*.2)),q.clone().addScaledVector(normal,h).add(new THREE.Vector3(0,0,size*.25)),size*.035,clay,7)}
    break;
  }
- case 11: {tube(g,offsetCurve(c,size*.075),size*.045,chrome,n,8);tube(g,offsetCurve(c,-size*.075),size*.045,chrome,n,8);for(let i=0;i<pts.length;i+=Math.max(3,Math.floor(size*.8/5))){let q=pts[i],t=c.getTangentAt(i/n),d=new THREE.Vector3(-t.y,t.x,0).multiplyScalar((i%2?1:-1)*size*.42),base=q.clone().add(new THREE.Vector3(0,0,size*.03)),tip=base.clone().add(d).addScaledVector(t,size*.18);tube(g,new THREE.CatmullRomCurve3([base,base.clone().addScaledVector(d,.55),tip]),size*.035,chrome,8,7)}break}
- case 12: {tube(g,c,size*.11,chrome,n,12);for(let i=0;i<pts.length;i+=Math.max(3,Math.floor(size*.6/5))){let q=pts[i],t=c.getTangentAt(i/n),d=new THREE.Vector3(-t.y,t.x,0).multiplyScalar((i%2?1:-1)*size*.48),base=q.clone().add(new THREE.Vector3(0,0,size*.04)),tip=base.clone().add(d).addScaledVector(t,size*.28);tube(g,new THREE.CatmullRomCurve3([base,base.clone().addScaledVector(d,.5),tip]),size*.055,chrome,9,8)}break}
- case 13: {tube(g,c,size*.055,wood,n,10);for(let i=0;i<pts.length;i+=Math.max(3,Math.floor(size*.5/5))){let q=pts[i],t=c.getTangentAt(i/n);for(const side of [-1,1]){let a=Math.atan2(t.y,t.x)+side*.9,dir=new THREE.Vector3(Math.cos(a),Math.sin(a),.12),start=q.clone().add(new THREE.Vector3(0,0,size*.04)),end=start.clone().addScaledVector(dir,size*.5);tube(g,new THREE.CatmullRomCurve3([start,start.clone().addScaledVector(dir,size*.23),end]),size*.025,wood,8,7);let lm=new THREE.Mesh(new THREE.SphereGeometry(size*.14,12,8),leaf);lm.scale.set(1.5,.55,.22);lm.position.copy(end);lm.rotation.z=a;g.add(lm)}}break}
- case 14: g.add(variableTube(c,t=>size*.39*(.9+.1*Math.sin(t*len/size*12)),clay,n,24));break;
- case 15: {tube(g,c,size*.24,wood,n,14);for(let i=0;i<pts.length;i+=Math.max(4,Math.floor(size/5))){let q=pts[i],t=c.getTangentAt(i/n),side=new THREE.Vector3(-t.y,t.x,0).multiplyScalar(i%2?1:-1),end=q.clone().addScaledVector(side,size*(.45+R()*.6)).addScaledVector(t,size*.22);tube(g,new THREE.CatmullRomCurve3([q,q.clone().addScaledVector(side,size*.2),end]),size*.075,wood,12,9)}break}
+ case 5: { foamLattice(g,c,size,foam,R);break; }
+ case 6: { // Volumetric foam: merged-looking inflated lobes with narrow necks
+   for(let k=0;k<3;k++){const cc=offsetCurve(c,(k-1)*size*.13,k*size*.1);g.add(variableTube(cc,t=>size*(.16+.13*Math.pow(Math.sin(t*len/size*1.9+k*.8),2)),foam,n,28))}
+   for(let i=0;i<pts.length;i+=Math.max(4,Math.floor(size*.45/5))){const q=pts[i];ellipsoid(g,q.clone().add(new THREE.Vector3(0,0,size*.12)),[size*.19,size*.17,size*.2],foam,2,R()*Math.PI)}
+   break;
+ }
+ case 7: { // Metallic beads with individual specular spheres and slight spacing variation
+   const step=Math.max(3,Math.floor(size*.47/5));for(let i=0;i<pts.length;i+=step){const q=pts[i].clone().add(new THREE.Vector3(0,0,size*.16)),r=size*(.17+R()*.035);ellipsoid(g,q,[r,r*(.92+R()*.16),r],bead,3,R()*Math.PI)}
+   break;
+ }
+ case 8: { // Sand: dense fine grains with occasional agglomerates
+   const step=Math.max(2,Math.floor(size*.12/5));for(let i=0;i<pts.length;i+=step){const q=pts[i],count=Math.round(5+tex*13);for(let k=0;k<count;k++){const a=R()*Math.PI*2,d=(R()-.5)*size*.68,r=.65+R()*Math.max(1.2,size*.035);ellipsoid(g,new THREE.Vector3(q.x+Math.cos(a)*d,q.y+Math.sin(a)*d,(R()-.5)*size*.13),[r,r*(.7+R()*.6),r*.75],sand,1,R()*Math.PI)}}
+   for(let i=0;i<pts.length;i+=Math.max(8,Math.floor(size/3)))ellipsoid(g,pts[i],[size*.09,size*.07,size*.055],sand,1);
+   break;
+ }
+ case 9: { // Stipple: shaded granular point cloud, density varies along stroke
+   const step=Math.max(2,Math.floor(size*.16/5));for(let i=0;i<pts.length;i+=step){const q=pts[i];for(let k=0;k<Math.round(10+tex*32);k++){const a=R()*Math.PI*2,d=(R()-.5)*size*.78,r=.45+R()*Math.max(.8,size*.025);ellipsoid(g,new THREE.Vector3(q.x+Math.cos(a)*d,q.y+Math.sin(a)*d,(R()-.5)*size*.1),[r,r,r*.7],stone,1)}}
+   break;
+ }
+ case 10: { // Porous material: cellular scaffold with open polygonal windows
+   foamLattice(g,c,size*.95,material(col,'porous'),R);break;
+ }
+ case 11: { // Twisted wire with sharp alternating barbs
+   const c1=offsetCurve(c,size*.045,size*.035),c2=offsetCurve(c,-size*.045,-size*.035);tube(g,c1,size*.035,chrome,n,9);tube(g,c2,size*.035,chrome,n,9);
+   for(let i=0;i<pts.length;i+=Math.max(3,Math.floor(size*.68/5))){const q=pts[i],t=c.getTangentAt(i/n),side=new THREE.Vector3(-t.y,t.x,0).multiplyScalar(i%2?1:-1),base=q.clone(),tip=base.clone().addScaledVector(side,size*.42).addScaledVector(t,size*.11);coneBetween(g,base,tip,size*.065,chrome,7)}
+   break;
+ }
+ case 12: { // Rose thorn stem, tapered curved thorns on alternating sides
+   const stem=material(col,'metal');g.add(variableTube(c,t=>size*.105*deterministicNoise(t,l.seed,.1),stem,n,14));
+   for(let i=0;i<pts.length;i+=Math.max(3,Math.floor(size*.55/5))){const q=pts[i],t=c.getTangentAt(i/n),side=new THREE.Vector3(-t.y,t.x,0).multiplyScalar(i%2?1:-1),base=q.clone().add(new THREE.Vector3(0,0,size*.05)),tip=base.clone().addScaledVector(side,size*(.28+R()*.2)).addScaledVector(t,size*.13);coneBetween(g,base,tip,size*.07,stem,8)}
+   break;
+ }
+ case 13: { // Laurel: woody stem and alternating sculpted lanceolate leaves
+   tube(g,c,size*.045,wood,n,10);
+   for(let i=0;i<pts.length;i+=Math.max(3,Math.floor(size*.48/5))){const q=pts[i],t=c.getTangentAt(i/n),baseAngle=Math.atan2(t.y,t.x);for(const side of [-1,1]){const a=baseAngle+side*.95+(R()-.5)*.18,leafPos=q.clone().add(new THREE.Vector3(0,0,size*.08));leafShape(g,leafPos,a,size*(.24+R()*.1),size*.105,leaf)}}
+   break;
+ }
+ case 14: { // Modeling clay: continuous deformable ribbon with thumb-pressed dents
+   g.add(variableTube(jaggedTube(c,size*.39,clay,l.seed,n),t=>size*(.34+.07*Math.sin(t*len/size*3)),clay,n,28));
+   for(let i=0;i<pts.length;i+=Math.max(5,Math.floor(size*.75/5))){const q=pts[i];ellipsoid(g,q.clone().add(new THREE.Vector3(0,0,size*.27)),[size*.07,size*.11,size*.035],clay,2,R()*Math.PI)}
+   break;
+ }
+ case 15: { // Branching wood with bark texture, taper and forked twigs
+   g.add(variableTube(c,t=>size*.22*(1-.48*t)*deterministicNoise(t,l.seed,.09),wood,n,16));
+   for(let i=0;i<pts.length;i+=Math.max(5,Math.floor(size*.72/5))){const q=pts[i],t=c.getTangentAt(i/n),side=new THREE.Vector3(-t.y,t.x,0).multiplyScalar(i%2?1:-1),start=q.clone(),mid=start.clone().addScaledVector(side,size*.24).add(new THREE.Vector3(0,0,size*.08)),tip=mid.clone().addScaledVector(side,size*(.32+R()*.2)).addScaledVector(t,size*.12);tube(g,new THREE.CatmullRomCurve3([start,mid,tip]),size*.045,wood,10,8);
+    const twig=tip.clone().addScaledVector(side,size*.22);strut(g,tip,twig,size*.018,wood,6)}
+   break;
+ }
  }
  const depth=clamp(p.d3??.75,0,1);g.scale.z=.65+depth*2.4;return g;
 }
 function clear(){while(root.children.length){const o=root.children[0];root.remove(o);o.traverse?.(x=>{x.geometry?.dispose();if(x.material){if(Array.isArray(x.material))x.material.forEach(m=>m.dispose());else mDispose(x.material)}})}}
 function mDispose(m){m.dispose()}
-let last='',lightKey='',dynamicLights=[];
+let lightKey='',dynamicLights=[],layerCache=new Map();
+function disposeGroup(group){group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}
+function layerSignature(l){
+ const pts=l.pts||[];let h=2166136261;
+ for(let i=0;i<pts.length;i++){const p=pts[i];h^=(Math.round((p[0]||0)*10)|0);h=Math.imul(h,16777619);h^=(Math.round((p[1]||0)*10)|0);h=Math.imul(h,16777619)}
+ return [l.brush,l.seed,pts.length,h,l.ox,l.oy,JSON.stringify(l.p)].join(':');
+}
 function update(layers,lights=[],ambient=.3){
- renderer.setSize(W,H,false);
- const sig=layers.filter(l=>l.vis&&l.type==='stroke'&&l.brush<16).map(l=>JSON.stringify([l.id,l.seed,l.brush,l.pts,l.ox,l.oy,l.p])).join('|');
- if(sig!==last){clear();for(const l of layers)if(l.vis&&l.type==='stroke'&&l.brush<16){const m=build(l);m.userData.layerId=l.id;root.add(m)}last=sig}
- if(JSON.stringify([lights,ambient])!==lightKey){dynamicLights.forEach(x=>scene.remove(x));dynamicLights=[];const ambLight=new THREE.AmbientLight(0xffffff,clamp(ambient*1.8,.12,1.8));ambLight.userData.dynamicLight=true;scene.add(ambLight);dynamicLights.push(ambLight);
-  for(const L of lights.slice(0,6)){const light=new THREE.PointLight(L.col||'#ffffff',Math.max(.1,(L.int||1)*180),Math.max(100,(L.r||600)*2),2);light.position.set(L.x,H-L.y,L.z||320);light.userData.dynamicLight=true;scene.add(light);dynamicLights.push(light)}lightKey=JSON.stringify([lights,ambient])}
+ const pr=renderer.getPixelRatio();
+ if(renderer.domElement.width!==Math.round(W*pr)||renderer.domElement.height!==Math.round(H*pr))renderer.setSize(W,H,false);
+ const wanted=new Set();
+ for(const l of layers){
+  if(!l.vis||l.type!=='stroke'||l.brush>=16)continue;
+  wanted.add(l.id);const sig=layerSignature(l),old=layerCache.get(l.id);
+  if(!old||old.sig!==sig){
+   if(old){root.remove(old.group);disposeGroup(old.group)}
+   const group=build(l);group.userData.layerId=l.id;group.userData.layerOpacity=l.op??1;
+   group.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.transparent=(l.op??1)<1;o.material.opacity=l.op??1}})
+   root.add(group);layerCache.set(l.id,{sig,group});
+  } else {
+   old.group.userData.layerOpacity=l.op??1;
+   old.group.traverse(o=>{if(o.isMesh&&o.material){o.material.opacity=l.op??1;o.material.transparent=(l.op??1)<1}});
+  }
+ }
+ for(const [id,item] of layerCache){if(!wanted.has(id)){root.remove(item.group);disposeGroup(item.group);layerCache.delete(id)}}
+ // Preserve exact layer stacking after individual mesh rebuilds.
+ for(const l of layers){const item=layerCache.get(l.id);if(item&&l.vis)root.add(item.group)}
+ if(JSON.stringify([lights,ambient])!==lightKey){
+  dynamicLights.forEach(x=>scene.remove(x));dynamicLights=[];
+  const ambLight=new THREE.AmbientLight(0xffffff,clamp(ambient*1.8,.12,1.8));scene.add(ambLight);dynamicLights.push(ambLight);
+  for(const L of lights.slice(0,6)){const light=new THREE.PointLight(L.col||'#ffffff',Math.max(.1,(L.int||1)*180),Math.max(100,(L.r||600)*2),2);light.position.set(L.x,H-L.y,L.z||320);scene.add(light);dynamicLights.push(light)}
+  lightKey=JSON.stringify([lights,ambient]);
+ }
  renderer.render(scene,camera);
 }
-function renderExport(scale=1){renderer.setSize(W*scale,H*scale,false);renderer.render(scene,camera);return view}
+function renderExport(scale=1){const pr=renderer.getPixelRatio();renderer.setPixelRatio(1);renderer.setSize(W*scale,H*scale,false);renderer.render(scene,camera);renderer.setPixelRatio(pr);return view}
 window.FORM3D={update,renderExport,ready:true,renderer,scene,camera};
 window.dispatchEvent(new Event('form3d-ready'));

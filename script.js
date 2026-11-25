@@ -1,5 +1,5 @@
 /* FORM Material Studio — Beta 02. Layer model: every stroke/image is an editable object, rendered deterministically (seeded). */
-const $=s=>document.querySelector(s),cv=$('#art'),cx=cv.getContext('2d',{willReadFrequently:true}),W=1200,H=900,TAU=Math.PI*2;
+const $=s=>document.querySelector(s),cv=$('#art'),stage=$('#stage'),cx=cv.getContext('2d',{willReadFrequently:true}),W=1200,H=900,TAU=Math.PI*2;
 const rngOf=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 const names=['GLAZED CERAMIC','STONE BRUSH','KINETIC METAL','EMBOSSING','VOLUMETRIC PASTE','FOAM BRUSH','VOLUMETRIC FOAM','METALLIC BEADS','SAND BRUSH','STIPPLE BRUSH','POROUS BRUSH','BARBED WIRE','ROSE THORNS','LAUREL WREATH','MODELING CLAY','WOODEN BRANCHES','FINE GLITTER','CHUNKY GLITTER','HOLOGRAPHIC','RHINESTONES','STAR DUST','GLITTER GEL','CLEAR GLASS','FROSTED GLASS','LIQUID LENS'];
 const short=['CERAMIC','STONE','METAL','EMBOSS','PASTE','FOAM','VOL. FOAM','BEADS','SAND','STIPPLE','POROUS','WIRE','THORNS','LAUREL','CLAY','WOOD','FINE','CHUNKY','HOLO','STRASS','STARS','GEL','CLEAR','FROST','LENS'];
@@ -153,14 +153,14 @@ $('#color').oninput=e=>edit('color',e.target.value);
 document.querySelectorAll('.swatch').forEach(b=>b.onclick=()=>{document.querySelector('.swatch.selected')?.classList.remove('selected');b.classList.add('selected');$('#color').value=b.dataset.color;if(tool==='sel'&&cur())push();edit('color',b.dataset.color)});
 const status=t=>$('#status').textContent=t;
 /* ---------- pointer ---------- */
-const pt=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H,e.timeStamp]};
+const pt=e=>{const r=stage.getBoundingClientRect();const x=(e.clientX-r.left)/Math.max(1,r.width)*W;const y=(e.clientY-r.top)/Math.max(1,r.height)*H;return[x,y,e.timeStamp]};
 function hit(x,y){for(let i=layers.length-1;i>=0;i--){const l=layers[i];if(!l.vis||l.type==='erase')continue;if(l.x!==undefined){const a=-l.rot*Math.PI/180,dx=x-l.x,dy=y-l.y,u=(dx*Math.cos(a)-dy*Math.sin(a))/l.sc,v=(dx*Math.sin(a)+dy*Math.cos(a))/l.sc;if(Math.abs(u)<=l.w/2&&Math.abs(v)<=l.h/2)return l}else{const m=l.p.size*.7,px=x-l.ox,py=y-l.oy;if(l.pts.some(q=>Math.hypot(q[0]-px,q[1]-py)<m))return l}}return null}
-cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const q=pt(e);
+cv.addEventListener('pointerdown',e=>{e.preventDefault();cv.setPointerCapture(e.pointerId);const q=pt(e);
  if(tool==='light'){let bi=-1,bd=36;lights.forEach((L,i)=>{const dd=Math.hypot(L.x-q[0],L.y-q[1]);if(dd<bd){bd=dd;bi=i}});if(bi>=0){lsel=bi;ld={first:true};lui();render()}return}
  if(tool==='mask'){const l=cur();if(!l||l.type!=='image'||l.lock){status('SELECT AN IMAGE LAYER FIRST');return}push();newMask(l);mp=[q[0],q[1]];maskTo(l,q[0]+.01,q[1]);return}
  if(tool==='sel'){const l=hit(q[0],q[1]);sel=l?l.id:null;ui();if(l&&!l.lock)mv={l,x:q[0],y:q[1],first:true};return}
  push();const er=tool==='erase',l={id:uid++,type:er?'erase':'stroke',name:(er?'ERASE':'STROKE')+' '+String(uid-1).padStart(2,'0')+(er?'':' · '+short[brush]),brush:er?0:brush,p:{...P},pts:[q],seed:Math.random()*1e9|0,vis:1,lock:0,op:1,blend:'source-over',ox:0,oy:0,_d:1};layers.push(l);sel=l.id;act=l;render()});
-cv.addEventListener('pointermove',e=>{if(ld){const q=pt(e);if(ld.first){push();ld.first=false}lights[lsel].x=q[0];lights[lsel].y=q[1];lrev++;if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()});return}if(mp){const q=pt(e);maskTo(cur(),q[0],q[1]);return}if(act){(e.getCoalescedEvents?.()||[e]).forEach(ev=>act.pts.push(pt(ev)));act._d=1;render();return}
+cv.addEventListener('pointermove',e=>{e.preventDefault();if(ld){const q=pt(e);if(ld.first){push();ld.first=false}lights[lsel].x=q[0];lights[lsel].y=q[1];lrev++;if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()});return}if(mp){const q=pt(e);maskTo(cur(),q[0],q[1]);return}if(act){(e.getCoalescedEvents?.()||[e]).forEach(ev=>act.pts.push(pt(ev)));act._d=1;render();return}
  if(mv){const q=pt(e),dx=q[0]-mv.x,dy=q[1]-mv.y;if(mv.first){push();mv.first=false}const l=mv.l;if(l.x!==undefined){l.x+=dx;l.y+=dy}else{l.ox+=dx;l.oy+=dy}mv.x=q[0];mv.y=q[1];render()}});
 const end=()=>{mp=null;ld=null;if(act){act=null;ui();render();status('READY')}mv=null};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
 /* ---------- masks ---------- */
